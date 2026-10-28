@@ -37,6 +37,10 @@
 
       <h2 class="section-title">오늘의 타임라인</h2>
       <p id="timeline-empty" class="empty">오늘은 남긴 기록이 없어요.</p>
+      <div id="sample-area" class="sample-area" hidden>
+        <button type="button" id="sample-add-btn" class="link-btn" hidden>예시 기록 넣기</button>
+        <button type="button" id="sample-clear-btn" class="link-btn" hidden>예시 기록 지우기</button>
+      </div>
       <ol id="timeline" class="timeline"></ol>
 
       <div class="review-actions">
@@ -72,6 +76,7 @@
         <li>떠오른 순간을 적고 Enter를 눌러 저장해요. 저장 버튼을 눌러도 돼요.</li>
         <li>하루를 마칠 때 하루 정리하기를 눌러요.</li>
         <li>에세이와 분류 결과를 확인해요.</li>
+        <li>지난 기록에서 월을 골라 날짜별로 다시 볼 수 있어요.</li>
       </ol>
 
       <details>
@@ -84,7 +89,7 @@
       </details>
       <details>
         <summary>저장한 글을 고칠 수 있나요?</summary>
-        <p>고칠 수 없어요. 그 순간의 기록을 그대로 남기기 위해서예요. 삭제는 할 수 있어요.</p>
+        <p>고칠 수 없어요. 그 순간의 기록을 그대로 남기기 위해서예요. 삭제는 할 수 있어요. 지난 기록도 삭제할 수 있어요.</p>
       </details>
       <details>
         <summary>줄바꿈은 할 수 없나요?</summary>
@@ -97,6 +102,10 @@
       <details>
         <summary>기록하지 않은 날은요?</summary>
         <p>그대로 비워 둬요.</p>
+      </details>
+      <details>
+        <summary>예시 기록은 무엇인가요?</summary>
+        <p>처음 써 보는 분이 기능을 살펴볼 수 있도록 넣어 두는 샘플이에요. 직접 쓴 기록이 아니고, 저장 시각도 정해 둔 값이에요. "예시" 표시가 붙고, 예시 기록 지우기로 한 번에 지울 수 있어요.</p>
       </details>
     </section>
   </main>

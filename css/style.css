@@ -326,6 +326,35 @@ details p {
   border-top: 1px solid var(--line);
 }
 
+.day-title {
+  margin: 20px 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sample-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.sample-area .link-btn { border-color: var(--line); }
+
+.sample-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 7px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 @media (min-width: 768px) {
   .tagline { font-size: 30px; }
   .header-inner,
