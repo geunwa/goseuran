@@ -124,6 +124,7 @@ body {
 textarea:focus-visible,
 select:focus-visible,
 .btn:focus-visible,
+.link-btn:focus-visible,
 summary:focus-visible,
 .nav a:focus-visible,
 .brand:focus-visible {
@@ -173,6 +174,8 @@ summary:focus-visible,
   color: var(--error);
 }
 
+.message.ok { color: var(--accent); }
+
 .section-title {
   margin: 24px 0 10px;
   font-size: 18px;
@@ -191,6 +194,8 @@ summary:focus-visible,
 
 .timeline li {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
@@ -207,8 +212,44 @@ summary:focus-visible,
 
 .timeline .text {
   flex: 1;
+  min-width: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.row-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-btn {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.link-btn.danger { color: var(--error); }
+
+.link-btn.danger:hover { border-color: var(--error); }
+
+.confirm-note {
+  flex-basis: 100%;
+  margin: 0;
+  padding-left: 61px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .review-actions { margin-top: 16px; }
@@ -290,4 +331,3 @@ details p {
   .header-inner,
   .container { max-width: 720px; }
 }
-.message.ok { color: var(--accent); }

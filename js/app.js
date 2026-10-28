@@ -18,6 +18,10 @@
   const timelineEl = document.getElementById('timeline');
   const timelineEmptyEl = document.getElementById('timeline-empty');
   const reviewBtn = document.getElementById('review-btn');
+  const reviewEl = document.getElementById('review');
+
+  // 삭제 확인 중인 기록의 id (없으면 null)
+  let confirmingId = null;
 
   // 한국 시간 기준 날짜(2026-10-28)와 시각(14:05)을 돌려줌
   function getKstParts(date) {
@@ -99,6 +103,29 @@
     messageEl.className = isOk ? 'message ok' : 'message';
   }
 
+  // 타임라인 한 줄에 들어갈 작은 버튼 만들기
+  function makeButton(label, action, id, className, ariaLabel) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = className;
+    btn.textContent = label;
+    btn.dataset.action = action;
+    btn.dataset.id = id;
+    btn.setAttribute('aria-label', ariaLabel);
+    return btn;
+  }
+
+  // 타임라인에서 동작과 id가 맞는 버튼 찾기
+  function findButton(action, id) {
+    const buttons = timelineEl.querySelectorAll('button[data-action]');
+    for (let i = 0; i < buttons.length; i++) {
+      if (buttons[i].dataset.action === action && buttons[i].dataset.id === id) {
+        return buttons[i];
+      }
+    }
+    return null;
+  }
+
   // 오늘 날짜와 타임라인 그리기
   function renderToday() {
     const now = new Date();
@@ -112,24 +139,108 @@
 
     timelineEl.textContent = '';
     todays.forEach(function (r) {
+      const timeLabel = getKstParts(new Date(r.createdAt)).time;
+      const isConfirming = r.id === confirmingId;
+
       const li = document.createElement('li');
 
       const time = document.createElement('span');
       time.className = 'time';
-      time.textContent = getKstParts(new Date(r.createdAt)).time;
+      time.textContent = timeLabel;
 
       const text = document.createElement('span');
       text.className = 'text';
       text.textContent = r.text;
 
+      const actions = document.createElement('span');
+      actions.className = 'row-actions';
+      if (isConfirming) {
+        actions.appendChild(makeButton('삭제', 'delete', r.id, 'link-btn danger', timeLabel + ' 기록 삭제 확정'));
+        actions.appendChild(makeButton('취소', 'cancel', r.id, 'link-btn', '삭제 취소'));
+      } else {
+        actions.appendChild(makeButton('삭제', 'ask-delete', r.id, 'link-btn', timeLabel + ' 기록 삭제'));
+      }
+
       li.appendChild(time);
       li.appendChild(text);
+      li.appendChild(actions);
+
+      if (isConfirming) {
+        const note = document.createElement('p');
+        note.className = 'confirm-note';
+        note.textContent = '삭제하면 되돌릴 수 없어요.';
+        li.appendChild(note);
+      }
+
       timelineEl.appendChild(li);
     });
 
     timelineEmptyEl.hidden = todays.length > 0;
     reviewBtn.disabled = todays.length === 0;
   }
+
+  // 기록 한 개 삭제하기
+  function deleteRecord(id) {
+    const records = readRecords();
+    if (records === null) {
+      showMessage('이 브라우저에서는 기록을 삭제할 수 없어요.', false);
+      return;
+    }
+
+    const remaining = records.filter(function (r) { return r.id !== id; });
+    if (remaining.length === records.length) {
+      // 이미 지워진 기록이면 화면만 새로 그림
+      confirmingId = null;
+      renderToday();
+      return;
+    }
+
+    if (!writeRecords(remaining)) {
+      showMessage('삭제하지 못했어요. 브라우저 저장 공간을 확인해 주세요.', false);
+      return;
+    }
+
+    confirmingId = null;
+    // 기록이 바뀌면 이전 하루 정리 결과는 지움 (AI 결과는 STEP 6~7에서 연결)
+    reviewEl.hidden = true;
+    reviewEl.textContent = '';
+    showMessage('삭제했어요.', true);
+    renderToday();
+    input.focus();
+  }
+
+  // 타임라인의 삭제, 삭제 확정, 취소 버튼 처리
+  timelineEl.addEventListener('click', function (event) {
+    const btn = event.target.closest('button[data-action]');
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    if (action === 'ask-delete') {
+      confirmingId = id;
+      renderToday();
+      const cancelBtn = findButton('cancel', id);
+      if (cancelBtn) cancelBtn.focus();   // 실수로 Enter를 눌러도 삭제되지 않도록 취소에 둠
+    } else if (action === 'cancel') {
+      confirmingId = null;
+      renderToday();
+      const askBtn = findButton('ask-delete', id);
+      if (askBtn) askBtn.focus();
+    } else if (action === 'delete') {
+      deleteRecord(id);
+    }
+  });
+
+  // Esc 키로 삭제 확인 취소
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape' || !confirmingId) return;
+    const id = confirmingId;
+    confirmingId = null;
+    renderToday();
+    const askBtn = findButton('ask-delete', id);
+    if (askBtn) askBtn.focus();
+  });
 
   // 입력창의 글을 한 개의 기록으로 저장. 붙여넣은 줄바꿈은 공백으로 바꿈
   function handleSave() {
@@ -173,6 +284,7 @@
     }
 
     input.value = '';
+    confirmingId = null;
     showMessage('저장했어요.', true);
     renderToday();
     input.focus();
