@@ -3,12 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>goseuran</title>
+  <meta name="description" content="떠오른 순간을 한 줄씩 남기면 저장한 시각이 자동으로 찍히고, 하루를 마칠 때 에세이 한 편으로 정리해 주는 기록 서비스">
+  <title>고스란 · 떠오른 순간을, 고스란히</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h1>goseuran</h1>
-  <p>work in progress</p>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#today">고스란</a>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a href="#today">오늘</a>
+        <a href="#past">지난 기록</a>
+        <a href="#about">소개</a>
+        <a href="#guide">사용 방법</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="today" class="section">
+      <h1 class="tagline">떠오른 순간을, 고스란히.</h1>
+      <p class="sub">한 줄씩 남기고, 하루를 돌아보세요.</p>
+      <time id="today-date" class="today-date"></time>
+
+      <form id="entry-form" class="entry-form">
+        <label for="entry-input" class="visually-hidden">기록 입력</label>
+        <textarea id="entry-input" rows="4" placeholder="떠오른 순간을 적어 보세요. 줄마다 따로 저장돼요."></textarea>
+        <div class="entry-actions">
+          <button type="submit" id="save-btn" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+
+      <h2 class="section-title">오늘의 타임라인</h2>
+      <p id="timeline-empty" class="empty">오늘은 남긴 기록이 없어요.</p>
+      <ol id="timeline" class="timeline"></ol>
+
+      <div class="review-actions">
+        <button type="button" id="review-btn" class="btn btn-secondary" disabled>하루 정리하기</button>
+      </div>
+      <div id="review" class="review" hidden></div>
+    </section>
+
+    <section id="past" class="section">
+      <h2 class="section-title">지난 기록</h2>
+      <div id="month-picker" class="month-picker" hidden>
+        <label for="month-select">월 선택</label>
+        <select id="month-select"></select>
+      </div>
+      <p id="past-empty" class="empty">아직 지난 기록이 없어요.</p>
+      <div id="past-list" class="past-list"></div>
+    </section>
+
+    <section id="about" class="section">
+      <h2 class="section-title">서비스 소개</h2>
+      <p>고스란은 떠오른 순간을 있는 그대로 남기는 기록장이에요. 저장하는 순간의 날짜와 시각이 자동으로 찍혀요.</p>
+      <ul class="point-list">
+        <li><strong>그대로 보관</strong>저장한 글은 수정할 수 없어요. 원하지 않는 기록은 삭제할 수 있어요.</li>
+        <li><strong>하루 에세이</strong>하루를 마칠 때 타임라인을 바탕으로 AI가 에세이 한 편을 써 줘요.</li>
+        <li><strong>지어내지 않기</strong>AI에게 적어 둔 내용 안에서만 쓰도록 요청해요.</li>
+        <li><strong>부담 없이</strong>기록하지 않은 날은 그대로 비워 둬요. 연속 기록이나 점수는 없어요.</li>
+      </ul>
+    </section>
+
+    <section id="guide" class="section">
+      <h2 class="section-title">사용 방법과 FAQ</h2>
+      <ol class="steps">
+        <li>떠오른 순간을 적고 저장해요. 줄마다 따로 저장돼요.</li>
+        <li>하루를 마칠 때 하루 정리하기를 눌러요.</li>
+        <li>에세이와 분류 결과를 확인해요.</li>
+      </ol>
+
+      <details>
+        <summary>기록은 어디에 저장되나요?</summary>
+        <p>지금 쓰는 기기의 브라우저에 저장돼요. 서버에는 저장하지 않아요. 다른 기기나 다른 브라우저에서는 보이지 않고, 브라우저의 사이트 데이터를 지우면 사라져요.</p>
+      </details>
+      <details>
+        <summary>하루 정리하기를 누르면 내 기록이 어디로 가나요?</summary>
+        <p>그날의 기록이 AI 서비스로 전송돼요. 개인정보나 민감한 내용은 적지 마세요.</p>
+      </details>
+      <details>
+        <summary>저장한 글을 고칠 수 있나요?</summary>
+        <p>고칠 수 없어요. 그 순간의 기록을 그대로 남기기 위해서예요. 삭제는 할 수 있어요.</p>
+      </details>
+      <details>
+        <summary>지난 일을 적으면 시각은 어떻게 되나요?</summary>
+        <p>저장한 순간의 시각이 찍혀요. 시각을 직접 정할 수는 없어요. 필요하면 글 안에 "어제"처럼 적어 두세요.</p>
+      </details>
+      <details>
+        <summary>기록하지 않은 날은요?</summary>
+        <p>그대로 비워 둬요.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>고스란 · 떠오른 순간을, 고스란히.</p>
+  </footer>
+
   <script src="js/app.js"></script>
 </body>
 </html>
