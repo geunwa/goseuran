@@ -290,3 +290,4 @@ details p {
   .header-inner,
   .container { max-width: 720px; }
 }
+.message.ok { color: var(--accent); }
