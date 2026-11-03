@@ -110,21 +110,24 @@ body {
 }
 
 .entry-form textarea {
+  display: block;
   width: 100%;
-  min-height: 112px;
   padding: 14px;
   font: inherit;
   color: inherit;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  resize: vertical;
+  resize: none;
 }
 
 textarea:focus-visible,
 select:focus-visible,
 .btn:focus-visible,
 .link-btn:focus-visible,
+.past-toggle:focus-visible,
+.year-btn:focus-visible,
+.month-btn:focus-visible,
 summary:focus-visible,
 .nav a:focus-visible,
 .brand:focus-visible {
@@ -134,9 +137,19 @@ summary:focus-visible,
 
 .entry-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 10px;
 }
+
+.char-count {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.char-count.over { color: var(--error); }
 
 .btn {
   padding: 10px 20px;
@@ -262,20 +275,137 @@ summary:focus-visible,
   border-radius: var(--radius);
 }
 
-.month-picker {
+.past-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-size: 14px;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 24px 0 10px;
 }
 
-.month-picker select {
-  padding: 8px 10px;
+.past-head .section-title { margin: 0; }
+
+.past-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
   font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.past-toggle[aria-expanded="true"] { border-color: var(--accent); }
+
+.past-toggle .chev {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.past-picker {
+  margin: 0 0 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.year-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.year-label {
+  min-width: 4.5em;
+  text-align: center;
+  font-weight: 600;
+}
+
+.year-btn {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
+  cursor: pointer;
+}
+
+.year-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.month-btn {
+  padding: 10px 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.month-btn.has {
+  color: var(--text);
+  font-weight: 700;
+  border-color: #cfc8bb;
+}
+
+.month-btn.selected {
+  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.month-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.day-title {
+  margin: 20px 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sample-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.sample-area .link-btn { border-color: var(--line); }
+
+.sample-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 7px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  vertical-align: middle;
 }
 
 .point-list {
@@ -326,37 +456,9 @@ details p {
   border-top: 1px solid var(--line);
 }
 
-.day-title {
-  margin: 20px 0 2px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.sample-area {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.sample-area .link-btn { border-color: var(--line); }
-
-.sample-tag {
-  display: inline-block;
-  margin-right: 6px;
-  padding: 0 7px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  vertical-align: middle;
-}
-
 @media (min-width: 768px) {
   .tagline { font-size: 30px; }
   .header-inner,
   .container { max-width: 720px; }
+  .month-grid { grid-template-columns: repeat(6, 1fr); }
 }

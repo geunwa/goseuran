@@ -27,13 +27,15 @@
     { daysAgo: 2, time: '10:15', text: '오전에 빨래를 널었다.' },
     { daysAgo: 2, time: '19:40', text: '저녁 산책이 상쾌했다.' },
     { daysAgo: 35, time: '09:00', text: '새 달력을 걸었다.' },
-    { daysAgo: 35, time: '18:30', text: '친구에게 안부 문자를 보냈다.' }
+    { daysAgo: 35, time: '18:30', text: '친구에게 안부 문자를 보냈다.' },
+    { daysAgo: 400, time: '15:20', text: '도서관에서 빌린 책을 반납했다.' }
   ];
 
   // 화면 요소 찾기
   const form = document.getElementById('entry-form');
   const input = document.getElementById('entry-input');
   const saveBtn = document.getElementById('save-btn');
+  const charCountEl = document.getElementById('char-count');
   const messageEl = document.getElementById('message');
   const todayDateEl = document.getElementById('today-date');
   const timelineEl = document.getElementById('timeline');
@@ -43,14 +45,26 @@
   const sampleClearBtn = document.getElementById('sample-clear-btn');
   const reviewBtn = document.getElementById('review-btn');
   const reviewEl = document.getElementById('review');
-  const monthPickerEl = document.getElementById('month-picker');
-  const monthSelectEl = document.getElementById('month-select');
+  const pastToggleEl = document.getElementById('past-toggle');
+  const pastToggleLabelEl = document.getElementById('past-toggle-label');
+  const pastChevEl = document.getElementById('past-chev');
+  const pastPickerEl = document.getElementById('past-picker');
+  const yearPrevBtn = document.getElementById('year-prev');
+  const yearNextBtn = document.getElementById('year-next');
+  const yearLabelEl = document.getElementById('year-label');
+  const monthGridEl = document.getElementById('month-grid');
   const pastEmptyEl = document.getElementById('past-empty');
   const pastListEl = document.getElementById('past-list');
 
-  // 삭제 확인 중인 기록의 id (없으면 null), 지난 기록에서 선택한 월 (예: '2026-10')
+  // 삭제 확인 중인 기록의 id (없으면 null)
   let confirmingId = null;
-  let selectedMonth = null;
+  // 지난 기록에서 지금 보여 주는 해와 달 (달은 1~12, 처음에는 null)
+  let selYear = null;
+  let selMonth = null;
+  // 선택기 안에서 살펴보는 해, 선택기가 펼쳐져 있는지, 지난 기록이 있는 해 목록(오름차순)
+  let pickerYear = null;
+  let pickerOpen = false;
+  let yearsWithRecords = [];
 
   // 한국 시간 기준 날짜(2026-10-28)와 시각(14:05)을 돌려줌
   function getKstParts(date) {
@@ -92,10 +106,9 @@
     }).format(new Date(dateKey + 'T12:00:00+09:00'));
   }
 
-  // 월 선택 상자에 보여 줄 글자 (예: 2026년 10월)
-  function formatMonthLabel(monthKey) {
-    const p = monthKey.split('-');
-    return p[0] + '년 ' + Number(p[1]) + '월';
+  // 해와 달을 '2026-09' 같은 월 키로 만듦
+  function monthKey(year, month) {
+    return year + '-' + String(month).padStart(2, '0');
   }
 
   // 저장된 기록 읽기. 저장소를 쓸 수 없으면 null
@@ -158,6 +171,18 @@
   function showMessage(text, isOk) {
     messageEl.textContent = text;
     messageEl.className = isOk ? 'message ok' : 'message';
+  }
+
+  // 입력창의 글을 저장할 모양으로 바꿈: 줄바꿈은 공백 하나로, 앞뒤 공백은 제거
+  function normalizeInput(value) {
+    return value.replace(/\s*[\r\n]+\s*/g, ' ').trim();
+  }
+
+  // 글자 수 표시 (100자를 넘으면 붉게)
+  function updateCharCount() {
+    const len = normalizeInput(input.value).length;
+    charCountEl.textContent = len + '/' + MAX_CHARS;
+    charCountEl.classList.toggle('over', len > MAX_CHARS);
   }
 
   // 한 줄에 들어갈 작은 버튼 만들기
@@ -250,7 +275,7 @@
     renderSampleArea(todays, records);
   }
 
-  // 지난 기록 그리기: 월을 고르면 그 달의 날짜별 기록을 보여 줌
+  // 지난 기록 그리기: 제목 옆 버튼, 접이식 연도·월 선택기, 선택한 달의 날짜별 기록
   function renderPast() {
     const todayKey = getKstParts(new Date()).dateKey;
     const records = readRecords() || [];
@@ -258,37 +283,77 @@
 
     pastListEl.textContent = '';
 
+    // 지난 기록이 하나도 없으면 안내만 보여 줌
     if (past.length === 0) {
-      monthPickerEl.hidden = true;
+      pastToggleEl.hidden = true;
+      pastPickerEl.hidden = true;
       pastEmptyEl.hidden = false;
-      selectedMonth = null;
+      selYear = null;
+      selMonth = null;
+      pickerYear = null;
+      pickerOpen = false;
+      yearsWithRecords = [];
       return;
     }
     pastEmptyEl.hidden = true;
-    monthPickerEl.hidden = false;
+    pastToggleEl.hidden = false;
 
-    // 기록이 있는 월 목록 (최근 월이 위)
-    const monthSet = {};
-    past.forEach(function (r) { monthSet[dateKeyOf(r).slice(0, 7)] = true; });
-    const months = Object.keys(monthSet).sort().reverse();
-    if (!selectedMonth || months.indexOf(selectedMonth) === -1) {
-      selectedMonth = months[0];
+    // 기록이 있는 달과 해 모으기
+    const monthsWith = {};
+    const yearSet = {};
+    past.forEach(function (r) {
+      const key = dateKeyOf(r);
+      monthsWith[key.slice(0, 7)] = true;
+      yearSet[key.slice(0, 4)] = true;
+    });
+    const monthKeys = Object.keys(monthsWith).sort();
+    yearsWithRecords = Object.keys(yearSet).map(Number).sort(function (a, b) { return a - b; });
+
+    // 보고 있는 달에 기록이 없으면(처음이거나 삭제한 뒤) 가장 최근 기록이 있는 달로
+    if (selYear === null || selMonth === null || !monthsWith[monthKey(selYear, selMonth)]) {
+      const latest = monthKeys[monthKeys.length - 1];
+      selYear = Number(latest.slice(0, 4));
+      selMonth = Number(latest.slice(5, 7));
+    }
+    if (pickerYear === null || yearsWithRecords.indexOf(pickerYear) === -1) {
+      pickerYear = selYear;
     }
 
-    monthSelectEl.textContent = '';
-    months.forEach(function (m) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = formatMonthLabel(m);
-      monthSelectEl.appendChild(opt);
-    });
-    monthSelectEl.value = selectedMonth;
+    // 제목 옆 버튼과 선택기 펼침
+    pastToggleLabelEl.textContent = selYear + '년 ' + selMonth + '월';
+    pastToggleEl.setAttribute('aria-expanded', pickerOpen ? 'true' : 'false');
+    pastChevEl.textContent = pickerOpen ? '▴' : '▾';
+    pastPickerEl.hidden = !pickerOpen;
 
-    // 선택한 월의 기록을 날짜별로 묶기
+    // 연도 이동: 기록이 있는 해로만 건너뜀
+    const yi = yearsWithRecords.indexOf(pickerYear);
+    yearLabelEl.textContent = pickerYear + '년';
+    yearPrevBtn.disabled = yi <= 0;
+    yearNextBtn.disabled = yi >= yearsWithRecords.length - 1;
+
+    // 월 버튼 12개: 기록이 있는 달만 진하게, 누를 수 있음. 나머지는 흐리고 누를 수 없음
+    monthGridEl.textContent = '';
+    for (let m = 1; m <= 12; m++) {
+      const has = !!monthsWith[monthKey(pickerYear, m)];
+      const isSelected = pickerYear === selYear && m === selMonth;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'month-btn' + (has ? ' has' : '') + (isSelected ? ' selected' : '');
+      btn.textContent = m + '월';
+      btn.dataset.month = String(m);
+      btn.disabled = !has;
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.setAttribute('aria-label', pickerYear + '년 ' + m + '월' + (has ? ', 기록 있음' : ', 기록 없음'));
+      monthGridEl.appendChild(btn);
+    }
+
+    // 선택한 달의 기록을 날짜별로 묶기
+    const prefix = monthKey(selYear, selMonth);
     const byDay = {};
     past.forEach(function (r) {
       const key = dateKeyOf(r);
-      if (key.slice(0, 7) !== selectedMonth) return;
+      if (key.slice(0, 7) !== prefix) return;
       if (!byDay[key]) byDay[key] = [];
       byDay[key].push(r);
     });
@@ -315,6 +380,62 @@
     renderToday();
     renderPast();
   }
+
+  // 선택기 닫기
+  function closePicker(focusToggle) {
+    if (!pickerOpen) return;
+    pickerOpen = false;
+    renderPast();
+    if (focusToggle) pastToggleEl.focus();
+  }
+
+  // 제목 옆 버튼: 선택기 펼치기와 접기
+  pastToggleEl.addEventListener('click', function () {
+    pickerOpen = !pickerOpen;
+    if (pickerOpen) pickerYear = selYear;
+    confirmingId = null;
+    renderPast();
+    if (pickerOpen) {
+      const selected = monthGridEl.querySelector('.month-btn.selected');
+      if (selected) selected.focus();
+    }
+  });
+
+  // 연도 이동: 선택기 안에서 기록이 있는 앞뒤 해로 이동 (보던 달은 그대로)
+  function moveYear(delta) {
+    const i = yearsWithRecords.indexOf(pickerYear);
+    const next = yearsWithRecords[i + delta];
+    if (i === -1 || next === undefined) return;
+    pickerYear = next;
+    renderPast();
+  }
+  yearPrevBtn.addEventListener('click', function () {
+    moveYear(-1);
+    if (yearPrevBtn.disabled) yearNextBtn.focus();
+  });
+  yearNextBtn.addEventListener('click', function () {
+    moveYear(1);
+    if (yearNextBtn.disabled) yearPrevBtn.focus();
+  });
+
+  // 월 버튼을 누르면 그 달을 보여 주고 선택기를 접음
+  monthGridEl.addEventListener('click', function (event) {
+    const btn = event.target.closest('button[data-month]');
+    if (!btn || btn.disabled) return;
+    selYear = pickerYear;
+    selMonth = Number(btn.dataset.month);
+    pickerOpen = false;
+    confirmingId = null;
+    renderPast();
+    pastToggleEl.focus();
+  });
+
+  // 선택기 바깥을 누르면 접기
+  document.addEventListener('click', function (event) {
+    if (!pickerOpen) return;
+    if (event.target.closest('#past-toggle, #past-picker')) return;
+    closePicker(false);
+  });
 
   // 기록 한 개 삭제하기
   function deleteRecord(id, fromPast) {
@@ -372,21 +493,19 @@
   timelineEl.addEventListener('click', onRowClick);
   pastListEl.addEventListener('click', onRowClick);
 
-  // Esc 키로 삭제 확인 취소
+  // Esc 키: 선택기가 펼쳐져 있으면 접고, 아니면 삭제 확인을 취소
   document.addEventListener('keydown', function (event) {
-    if (event.key !== 'Escape' || !confirmingId) return;
+    if (event.key !== 'Escape') return;
+    if (pickerOpen) {
+      closePicker(true);
+      return;
+    }
+    if (!confirmingId) return;
     const id = confirmingId;
     confirmingId = null;
     renderAll();
     const askBtn = findButton('ask-delete', id);
     if (askBtn) askBtn.focus();
-  });
-
-  // 월 선택이 바뀌면 그 달의 기록을 다시 그림
-  monthSelectEl.addEventListener('change', function () {
-    selectedMonth = monthSelectEl.value;
-    confirmingId = null;
-    renderPast();
   });
 
   // ---- 예시 기록 ----
@@ -436,6 +555,10 @@
       return;
     }
     confirmingId = null;
+    selYear = null;
+    selMonth = null;
+    pickerYear = null;
+    pickerOpen = false;
     showMessage('예시 기록을 넣었어요. 직접 쓴 기록이 아니에요. 언제든 지울 수 있어요.', true);
     renderAll();
   });
@@ -457,7 +580,7 @@
 
   // 입력창의 글을 한 개의 기록으로 저장. 붙여넣은 줄바꿈은 공백으로 바꿈
   function handleSave() {
-    const text = input.value.replace(/\s*[\r\n]+\s*/g, ' ').trim();
+    const text = normalizeInput(input.value);
 
     if (text.length === 0) {
       showMessage('내용을 입력해 주세요.', false);
@@ -497,6 +620,7 @@
     }
 
     input.value = '';
+    updateCharCount();
     confirmingId = null;
     showMessage('저장했어요.', true);
     renderAll();
@@ -553,8 +677,9 @@
     if (waited) setTimeout(saveFromEnter, 0);
   });
 
-  // 다시 입력하기 시작하면 안내 문구를 지움
+  // 글을 입력하는 동안 글자 수를 갱신하고, 다시 입력하기 시작하면 안내 문구를 지움
   input.addEventListener('input', function () {
+    updateCharCount();
     if (messageEl.textContent) showMessage('', false);
   });
 
@@ -568,5 +693,6 @@
     showMessage('이 브라우저에서는 기록을 저장할 수 없어요. 사생활 보호 모드를 끄고 다시 시도해 주세요.', false);
     saveBtn.disabled = true;
   }
+  updateCharCount();
   renderAll();
 })();
