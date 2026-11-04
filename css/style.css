@@ -462,3 +462,60 @@ details p {
   .container { max-width: 720px; }
   .month-grid { grid-template-columns: repeat(6, 1fr); }
 }
+
+.review-state {
+  margin: 0;
+  color: var(--muted);
+}
+
+.review.error .review-state { color: var(--error); }
+
+.review-badge {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.review-essay {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+
+.review-sub {
+  margin: 16px 0 6px;
+  font-size: 15px;
+}
+
+.review-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-list li {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-list .cat {
+  flex: none;
+  align-self: flex-start;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+}
+
+.review-list .txt {
+  min-width: 0;
+  word-break: break-word;
+}
