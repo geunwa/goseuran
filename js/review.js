@@ -5,7 +5,7 @@
   const STORAGE_KEY = 'goseuran.records.v1';
   const TIME_ZONE = 'Asia/Seoul';
   const API_URL = '/api/review';
-  const TIMEOUT_MS = 20000;   // 응답을 기다리는 최대 시간
+  const TIMEOUT_MS = 30000;   // 응답을 기다리는 최대 시간 (서버는 25초)
 
   const reviewBtn = document.getElementById('review-btn');
   const reviewEl = document.getElementById('review');
@@ -26,7 +26,7 @@
     return map.year + '-' + map.month + '-' + map.day;
   }
 
-  // 저장된 기록 중 오늘 것만, 이른 시각 순으로. 서버에는 id와 글, 시각만 보냄
+  // 저장된 기록 중 오늘 것만, 이른 시각 순으로. 서버에는 id와 글만 보냄
   function getTodayRecords() {
     let raw = null;
     try {
@@ -53,7 +53,7 @@
         return 0;
       })
       .map(function (r) {
-        return { id: r.id, text: r.text, createdAt: r.createdAt };
+        return { id: r.id, text: r.text };
       });
   }
 
@@ -73,12 +73,22 @@
     if (err && err.name === 'AbortError') {
       return '응답이 늦어지고 있어요. 잠시 후 다시 시도해 주세요.';
     }
+    if (err && err.serverMessage) return err.serverMessage;
+
     const status = err && err.status;
-    if (status === 400) return '보낸 기록을 확인할 수 없어요. 기록을 확인하고 다시 시도해 주세요.';
-    if (status === 413) return '보낼 내용이 너무 길어요.';
     if (status === 404 || status === 405) return '정리 기능을 찾을 수 없어요. 배포된 주소에서 시도해 주세요.';
+    if (status === 413) return '보낼 내용이 너무 길어요.';
     if (status >= 500) return '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';
+    if (status >= 400) return '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
     return '서버에 연결하지 못했어요. 인터넷 연결을 확인하거나 배포된 주소에서 시도해 주세요.';
+  }
+
+  // 작은 제목 만들기
+  function makeHeading(text) {
+    const h = document.createElement('h3');
+    h.className = 'review-sub';
+    h.textContent = text;
+    return h;
   }
 
   // 서버가 돌려준 결과를 화면에 그림. 글은 모두 textContent로 넣음
@@ -87,13 +97,7 @@
     reviewEl.textContent = '';
     reviewEl.className = 'review';
 
-    if (data.status === 'dummy') {
-      const badge = document.createElement('span');
-      badge.className = 'review-badge';
-      badge.textContent = '테스트 응답';
-      reviewEl.appendChild(badge);
-    }
-
+    reviewEl.appendChild(makeHeading('하루 에세이'));
     const essay = document.createElement('p');
     essay.className = 'review-essay';
     essay.textContent = typeof data.essay === 'string' ? data.essay : '';
@@ -103,30 +107,53 @@
       const textById = Object.create(null);
       records.forEach(function (r) { textById[r.id] = r.text; });
 
-      const title = document.createElement('h3');
-      title.className = 'review-sub';
-      title.textContent = '분류';
-      reviewEl.appendChild(title);
-
+      reviewEl.appendChild(makeHeading('분류와 정돈 문장'));
       const list = document.createElement('ul');
       list.className = 'review-list';
+
       data.items.forEach(function (item) {
         if (!item || typeof item.id !== 'string' || !(item.id in textById)) return;
 
         const li = document.createElement('li');
+
         const cat = document.createElement('span');
         cat.className = 'cat';
         cat.textContent = typeof item.category === 'string' ? item.category : '기타';
-        const txt = document.createElement('span');
-        txt.className = 'txt';
-        txt.textContent = textById[item.id];
+
+        const body = document.createElement('div');
+        body.className = 'body';
+
+        const orig = document.createElement('span');
+        orig.className = 'orig';
+        orig.textContent = textById[item.id];
+        body.appendChild(orig);
+
+        if (typeof item.tidy === 'string' && item.tidy && item.tidy !== textById[item.id]) {
+          const tidy = document.createElement('span');
+          tidy.className = 'tidy';
+          const label = document.createElement('span');
+          label.className = 'tidy-label';
+          label.textContent = 'AI 정돈';
+          tidy.appendChild(label);
+          tidy.appendChild(document.createTextNode(item.tidy));
+          body.appendChild(tidy);
+        }
 
         li.appendChild(cat);
-        li.appendChild(txt);
+        li.appendChild(body);
         list.appendChild(li);
       });
       reviewEl.appendChild(list);
     }
+
+    // 시험 단계에서만 보이는 정보(모델과 사용 토큰). STEP 7에서 정리함
+    const meta = document.createElement('p');
+    meta.className = 'review-meta';
+    const usage = data.usage || {};
+    meta.textContent = '모델 ' + (data.model || '-')
+      + ' · 입력 ' + (usage.input == null ? '-' : usage.input)
+      + ' · 출력 ' + (usage.output == null ? '-' : usage.output) + ' 토큰';
+    reviewEl.appendChild(meta);
   }
 
   // 하루 정리하기 버튼
@@ -164,6 +191,7 @@
       if (!res.ok) {
         const httpError = new Error('http');
         httpError.status = res.status;
+        httpError.serverMessage = (data && typeof data.message === 'string') ? data.message : '';
         throw httpError;
       }
       if (!data || typeof data !== 'object') {
