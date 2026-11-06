@@ -6,12 +6,15 @@
   const TIME_ZONE = 'Asia/Seoul';
   const API_URL = '/api/review';
   const TIMEOUT_MS = 30000;   // 응답을 기다리는 최대 시간 (서버는 25초)
+  const CODE_MAX_LEN = 64;    // 접근 코드 입력 글자 수 상한
 
   const reviewBtn = document.getElementById('review-btn');
   const reviewEl = document.getElementById('review');
   if (!reviewBtn || !reviewEl) return;
 
   let busy = false;
+  // 접근 코드는 이 변수에만 둠. 브라우저 저장소에 쓰지 않아서 새로 고치거나 탭을 닫으면 사라짐
+  let accessCode = '';
 
   // 한국 시간 기준 날짜 키 (예: 2026-11-04)
   function dateKeyOf(date) {
@@ -66,6 +69,67 @@
     p.className = 'review-state';
     p.textContent = text;
     reviewEl.appendChild(p);
+  }
+
+  // 접근 코드 입력칸 표시. isError가 true면 안내를 붉게 보여 줌
+  function showAccessPrompt(message, isError) {
+    reviewEl.hidden = false;
+    reviewEl.textContent = '';
+    reviewEl.className = isError ? 'review error' : 'review';
+
+    const p = document.createElement('p');
+    p.className = 'review-state';
+    p.textContent = message;
+    reviewEl.appendChild(p);
+
+    const form = document.createElement('form');
+    form.className = 'access-form';
+
+    const label = document.createElement('label');
+    label.className = 'visually-hidden';
+    label.setAttribute('for', 'access-code');
+    label.textContent = '접근 코드';
+
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.id = 'access-code';
+    input.className = 'access-input';
+    input.placeholder = '접근 코드';
+    input.maxLength = CODE_MAX_LEN;
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+
+    const btn = document.createElement('button');
+    btn.type = 'submit';
+    btn.className = 'btn btn-secondary';
+    btn.textContent = '확인';
+
+    form.appendChild(label);
+    form.appendChild(input);
+    form.appendChild(btn);
+
+    const note = document.createElement('p');
+    note.className = 'access-note';
+    note.textContent = 'AI 호출은 접근 코드로 보호돼 있어요. 코드는 이 탭에서만 기억하고, 새로 고치면 지워져요.';
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const value = input.value.trim();
+      if (value === '') {
+        input.focus();
+        return;
+      }
+      if (/[^\x20-\x7E]/.test(value)) {
+        showAccessPrompt('접근 코드는 영문, 숫자, 기호로만 입력할 수 있어요.', true);
+        return;
+      }
+      accessCode = value;
+      runReview();
+    });
+
+    reviewEl.appendChild(form);
+    reviewEl.appendChild(note);
+    input.focus();
   }
 
   // 오류 종류에 맞는 안내 문구
@@ -146,18 +210,15 @@
       reviewEl.appendChild(list);
     }
 
-    // 시험 단계에서만 보이는 정보(모델과 사용 토큰). STEP 7에서 정리함
+    // 결과가 AI가 만든 것임을 알리는 한 줄
     const meta = document.createElement('p');
     meta.className = 'review-meta';
-    const usage = data.usage || {};
-    meta.textContent = '모델 ' + (data.model || '-')
-      + ' · 입력 ' + (usage.input == null ? '-' : usage.input)
-      + ' · 출력 ' + (usage.output == null ? '-' : usage.output) + ' 토큰';
+    meta.textContent = 'AI가 정리한 결과예요. 원문은 위 타임라인에 그대로 남아 있어요. · 모델 ' + (data.model || '-');
     reviewEl.appendChild(meta);
   }
 
-  // 하루 정리하기 버튼
-  reviewBtn.addEventListener('click', async function () {
+  // 하루 정리하기 실행
+  async function runReview() {
     if (busy) return;
 
     const records = getTodayRecords();
@@ -174,9 +235,12 @@
     const timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (accessCode) headers['X-Access-Code'] = accessCode;
+
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({ date: dateKeyOf(new Date()), records: records }),
         signal: controller.signal
       });
@@ -189,9 +253,19 @@
       }
 
       if (!res.ok) {
+        const serverMessage = (data && typeof data.message === 'string') ? data.message : '';
+
+        // 접근 코드가 없거나 틀렸을 때: 코드를 지우고 입력칸을 다시 보여 줌
+        if (res.status === 401) {
+          const wrong = !!(data && data.error === 'access_denied');
+          accessCode = '';
+          showAccessPrompt(serverMessage || '접근 코드가 필요해요. 코드를 입력해 주세요.', wrong);
+          return;
+        }
+
         const httpError = new Error('http');
         httpError.status = res.status;
-        httpError.serverMessage = (data && typeof data.message === 'string') ? data.message : '';
+        httpError.serverMessage = serverMessage;
         throw httpError;
       }
       if (!data || typeof data !== 'object') {
@@ -205,5 +279,8 @@
       busy = false;
       reviewBtn.disabled = false;
     }
-  });
+  }
+
+  // 하루 정리하기 버튼
+  reviewBtn.addEventListener('click', runReview);
 })();

@@ -1,4 +1,5 @@
 from http.server import BaseHTTPRequestHandler
+import hmac
 import json
 import os
 import re
@@ -14,6 +15,7 @@ AI_TIMEOUT_SECONDS = 25    # AI 응답을 기다리는 최대 시간
 MAX_OUTPUT_TOKENS = 4000   # AI가 쓸 수 있는 최대 출력 토큰 (Anthropic 방식에서는 필수)
 MAX_ESSAY_LEN = 1500       # 화면에 보낼 에세이의 최대 글자 수
 MAX_TIDY_LEN = 200         # 정돈 문장의 최대 글자 수
+WRONG_CODE_DELAY = 1.0     # 틀린 접근 코드를 받으면 기다리는 시간(초)
 DEFAULT_BASE_URL = "https://copa.codyssey.kr"
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 CATEGORIES = ["감사한 일", "잘한 일", "아쉬운 일", "배운 것", "앞으로 할 일", "기타"]
@@ -93,6 +95,7 @@ def get_config():
     model = os.environ.get("AI_MODEL", "").strip()
     key_name = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
     key = os.environ.get(key_name, "").strip()
+    access = os.environ.get("ACCESS_CODE", "").strip()   # 비어 있으면 접근 코드 없이 동작
 
     problems = []
     if provider not in ("anthropic", "openai"):
@@ -101,7 +104,10 @@ def get_config():
         problems.append("AI_MODEL")
     if not key:
         problems.append(key_name)
-    return {"provider": provider, "base": base, "model": model, "key": key, "problems": problems}
+    return {
+        "provider": provider, "base": base, "model": model, "key": key,
+        "access": access, "problems": problems,
+    }
 
 
 def build_user_text(records):
@@ -266,7 +272,7 @@ class handler(BaseHTTPRequestHandler):
     def _error(self, status, code, message):
         self._send_json(status, {"error": code, "message": message})
 
-    # 주소를 직접 열어 확인하는 용도. 키 값은 알려 주지 않고 설정이 되었는지만 알려 줌
+    # 주소를 직접 열어 확인하는 용도. 키와 접근 코드 값은 알려 주지 않고 설정 여부만 알려 줌
     def do_GET(self):
         config = get_config()
         self._send_json(200, {
@@ -275,6 +281,7 @@ class handler(BaseHTTPRequestHandler):
             "method": "GET",
             "configured": len(config["problems"]) == 0,
             "missing": config["problems"],
+            "access_required": bool(config["access"]),
             "provider": config["provider"],
             "model": config["model"],
         })
@@ -292,9 +299,23 @@ class handler(BaseHTTPRequestHandler):
         if length > MAX_BODY_BYTES:
             self._error(413, "too_large", "보낸 내용이 너무 길어요.")
             return
+        raw = self.rfile.read(length)
+
+        # 접근 코드 확인: 맞지 않으면 AI를 호출하지 않고 여기서 끝냄
+        config = get_config()
+        if config["access"]:
+            provided = (self.headers.get("X-Access-Code") or "").strip()
+            if not provided:
+                self._error(401, "access_required", "접근 코드가 필요해요. 코드를 입력해 주세요.")
+                return
+            if not hmac.compare_digest(provided.encode("utf-8"), config["access"].encode("utf-8")):
+                time.sleep(WRONG_CODE_DELAY)
+                print("access denied", flush=True)
+                self._error(401, "access_denied", "접근 코드가 맞지 않아요. 다시 확인해 주세요.")
+                return
 
         try:
-            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            payload = json.loads(raw.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             self._error(400, "bad_json", "보낸 내용을 읽을 수 없어요.")
             return
@@ -328,7 +349,6 @@ class handler(BaseHTTPRequestHandler):
             seen.add(rid)
             clean.append({"id": rid, "text": text})
 
-        config = get_config()
         if config["problems"]:
             print("config missing: " + ",".join(config["problems"]), flush=True)
             self._error(500, "not_configured", "AI 설정이 아직 되어 있지 않아요.")
