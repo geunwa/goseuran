@@ -8,13 +8,13 @@ import time
 import requests
 
 # 설정값
-MAX_BODY_BYTES = 20000     # 받을 수 있는 최대 크기
+MAX_BODY_BYTES = 40000     # 받을 수 있는 최대 크기
 MAX_RECORDS = 30           # 한 번에 받을 수 있는 기록 수
-MAX_TEXT_LEN = 100         # 기록 한 개의 최대 글자 수
+MAX_TEXT_LEN = 300         # 기록 한 개의 최대 글자 수
 AI_TIMEOUT_SECONDS = 25    # AI 응답을 기다리는 최대 시간
 MAX_OUTPUT_TOKENS = 4000   # AI가 쓸 수 있는 최대 출력 토큰 (Anthropic 방식에서는 필수)
 MAX_ESSAY_LEN = 1500       # 화면에 보낼 에세이의 최대 글자 수
-MAX_TIDY_LEN = 200         # 정돈 문장의 최대 글자 수
+MAX_TIDY_LEN = 600         # 정돈 문장의 최대 글자 수
 WRONG_CODE_DELAY = 1.0     # 틀린 접근 코드를 받으면 기다리는 시간(초)
 DEFAULT_BASE_URL = "https://copa.codyssey.kr"
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")

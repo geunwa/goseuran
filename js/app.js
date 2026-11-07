@@ -3,7 +3,7 @@
 
   // 설정값: 필요하면 값만 바꿔 쓰세요
   const STORAGE_KEY = 'goseuran.records.v1';
-  const MAX_CHARS = 100;             // 한 번에 저장할 수 있는 글자 수
+  const MAX_CHARS = 300;             // 한 번에 저장할 수 있는 글자 수
   const MAX_RECORDS_PER_DAY = 30;    // 하루에 저장할 수 있는 기록 수
   const TIME_ZONE = 'Asia/Seoul';
   const ENTER_GUARD_MS = 300;        // 이 시간 안에 다시 들어온 Enter는 무시

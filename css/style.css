@@ -580,3 +580,95 @@ details p {
   font-size: 13px;
   color: var(--muted);
 }
+
+/* ---- 다크 모드 ---- */
+:root {
+  color-scheme: light;
+  --header-bg: rgba(250, 248, 245, 0.95);
+  --strong-line: #cfc8bb;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(85, 103, 90, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1b1a18;
+    --surface: #252421;
+    --text: #ebe7df;
+    --muted: #a59f95;
+    --line: #38362f;
+    --accent: #8fae96;
+    --accent-dark: #a7c2ad;
+    --error: #e3907f;
+    --header-bg: rgba(27, 26, 24, 0.95);
+    --strong-line: #5a564e;
+    --on-accent: #1b1a18;
+    --accent-soft: rgba(143, 174, 150, 0.12);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1b1a18;
+  --surface: #252421;
+  --text: #ebe7df;
+  --muted: #a59f95;
+  --line: #38362f;
+  --accent: #8fae96;
+  --accent-dark: #a7c2ad;
+  --error: #e3907f;
+  --header-bg: rgba(27, 26, 24, 0.95);
+  --strong-line: #5a564e;
+  --on-accent: #1b1a18;
+  --accent-soft: rgba(143, 174, 150, 0.12);
+}
+
+/* 색을 직접 적었던 곳을 변수로 바꿈 */
+.site-header { background: var(--header-bg); }
+.btn-primary { color: var(--on-accent); }
+.btn-secondary:hover:not(:disabled) { background: var(--accent-soft); }
+.month-btn.has { border-color: var(--strong-line); }
+.month-btn.selected {
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+/* 상단 메뉴와 테마 버튼 */
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.header-tools .nav { min-width: 0; }
+
+.theme-toggle {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.theme-toggle:hover { border-color: var(--accent); }
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 테마가 바뀔 때 부드럽게 전환 (움직임 줄이기 설정이면 끔) */
+body { transition: background-color 0.2s ease, color 0.2s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}

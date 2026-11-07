@@ -3,20 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <meta name="description" content="떠오른 순간을 한 줄씩 남기면 저장한 시각이 자동으로 찍히고, 하루를 마칠 때 에세이 한 편으로 정리해 주는 기록 서비스">
   <title>고스란 · 떠오른 순간을, 고스란히</title>
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('goseuran.theme');
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) { /* 저장소를 쓸 수 없으면 기기 설정을 따름 */ }
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="#today">고스란</a>
-      <nav class="nav" aria-label="주요 메뉴">
-        <a href="#today">오늘</a>
-        <a href="#past">지난 기록</a>
-        <a href="#about">소개</a>
-        <a href="#guide">사용 방법</a>
-      </nav>
+      <div class="header-tools">
+        <nav class="nav" aria-label="주요 메뉴">
+          <a href="#today">오늘</a>
+          <a href="#past">지난 기록</a>
+          <a href="#about">소개</a>
+          <a href="#guide">사용 방법</a>
+        </nav>
+        <button type="button" id="theme-toggle" class="theme-toggle" aria-label="어두운 화면" aria-pressed="false">☾</button>
+      </div>
     </div>
   </header>
 
@@ -30,7 +44,7 @@
         <label for="entry-input" class="visually-hidden">기록 입력</label>
         <textarea id="entry-input" rows="4" placeholder="떠오른 순간을 적어 보세요. Enter를 누르면 저장돼요."></textarea>
         <div class="entry-actions">
-          <span id="char-count" class="char-count">0/100</span>
+          <span id="char-count" class="char-count">0/300</span>
           <button type="submit" id="save-btn" class="btn btn-primary">저장</button>
         </div>
       </form>
@@ -104,7 +118,7 @@
       </details>
       <details>
         <summary>글자 수에 제한이 있나요?</summary>
-        <p>한 번에 100자까지 저장할 수 있고, 하루에 30개까지 남길 수 있어요. 입력창 아래에서 글자 수를 볼 수 있어요.</p>
+        <p>한 번에 300자까지 저장할 수 있고, 하루에 30개까지 남길 수 있어요. 입력창 아래에서 글자 수를 볼 수 있어요.</p>
       </details>
       <details>
         <summary>줄바꿈은 할 수 없나요?</summary>
@@ -119,6 +133,10 @@
         <p>그대로 비워 둬요. 지난 기록의 월 버튼도 기록이 없는 달은 흐리게 보여요.</p>
       </details>
       <details>
+        <summary>화면을 어둡게 볼 수 있나요?</summary>
+        <p>기기의 다크 모드 설정을 따라 자동으로 바뀌어요. 오른쪽 위 버튼으로 직접 바꿀 수도 있고, 고른 화면은 이 브라우저에 기억돼요.</p>
+      </details>
+      <details>
         <summary>예시 기록은 무엇인가요?</summary>
         <p>처음 써 보는 분이 기능을 살펴볼 수 있도록 넣어 두는 샘플이에요. 직접 쓴 기록이 아니고, 저장 시각도 정해 둔 값이에요. "예시" 표시가 붙고, 예시 기록 지우기로 한 번에 지울 수 있어요.</p>
       </details>
@@ -131,5 +149,6 @@
 
   <script src="js/app.js"></script>
   <script src="js/review.js"></script>
+  <script src="js/theme.js"></script>
 </body>
 </html>
